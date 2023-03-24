@@ -56,6 +56,22 @@ class WorkerModel {
   }
 
   /**
+   * A method to update a worker in the database.
+   * @param workerId - The workerId from the worker.
+   * @param entry - The entry to update the worker.
+   */
+  public async update(workerId: string, entry: any): Promise<Model[]> {
+    this.logger.info("Trying to update some worker...");
+    const updateResult = await this.model.update(entry, {
+      returning: true,
+      where: {
+        id: workerId,
+      },
+    });
+    return updateResult[1];
+  }
+
+  /**
    * A method to delete a worker in the database.
    * @param query - The query to delete the worker.
    */
