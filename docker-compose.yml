@@ -4,6 +4,7 @@ services:
   workers-api:
     container_name: workers-api
     build: ./app
+    restart: unless-stopped
     env_file:
       - workers-api.env
       - workers-db.env
@@ -19,6 +20,7 @@ services:
   workers-db:
     container_name: workers-db
     image: postgres:15.2-alpine
+    restart: unless-stopped
     env_file:
       - workers-db.env
     volumes:
