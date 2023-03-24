@@ -48,6 +48,14 @@ class WorkerModel {
   }
 
   /**
+   * A method to find all workers in the database.
+   */
+  public async findAll(): Promise<Model[]> {
+    this.logger.info("Trying to find all workers...");
+    return await this.model.findAll();
+  }
+
+  /**
    * A method to delete a worker in the database.
    * @param query - The query to delete the worker.
    */

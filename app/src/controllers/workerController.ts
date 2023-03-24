@@ -11,10 +11,7 @@ class WorkerController {
     // Check if the level is admin.
     if (req.permission != "admin") {
       req.logger.warn("Insuficient permission. Returning...");
-      return res.status(403).json({
-        status: "Error",
-        message: "Elevated permissions required.",
-      });
+      return res.sendStatus(403);
     }
 
     // Check the request's body.
@@ -48,9 +45,54 @@ class WorkerController {
   }
 
   /**
+   * GET /worker/:workerId
+   */
+  public static async get(req: Request, res: Response): Promise<any> {
+    try {
+      // Search the worker in the database.
+      const worker = await new WorkerModel(req.logger).find({
+        id: req.params.workerId,
+      });
+      if (!worker) throw "No worker found.";
+
+      req.logger.info("The worker was found. Returning...");
+      res.status(200).json({
+        status: "Success",
+        data: worker.toJSON(),
+      });
+    } catch (err) {
+      req.logger.info("Couldn't found any worker. Returning...");
+      return res.status(400).json({
+        status: "Error",
+        message: err,
+      });
+    }
+  }
+
+  /**
    * GET /worker/
    */
-  public static async get(req: Request, res: Response): Promise<any> {}
+  public static async getAll(req: Request, res: Response): Promise<any> {
+    // Check if the level is admin.
+    if (req.permission != "admin") {
+      req.logger.warn("Elevated permissions required. Returning...");
+      return res.sendStatus(403);
+    }
+
+    try {
+      // Search the query in the database.
+      const workers = await new WorkerModel(req.logger).findAll();
+
+      req.logger.info(`Found ${workers.length} workers. Returning...`);
+      res.status(200).json({
+        status: "Success",
+        data: workers,
+      });
+    } catch (err) {
+      req.logger.error(`Couldn\'t search in the database. Error: ${err}`);
+      res.sendStatus(500);
+    }
+  }
 
   /**
    * PATCH /worker/
