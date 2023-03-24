@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  workers-api:
+    container_name: workers-api
+    build: ./app
+    env_file:
+      - workers-api.env
+      - workers-db.env
+    # ports:
+    #   - 3000:80
+    networks:
+      - default
+      - service
+      - creds-api_service
+    depends_on:
+      - workers-db
+
+  workers-db:
+    container_name: workers-db
+    image: postgres:14.2-alpine
+    env_file:
+      - workers-db.env
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - default
+
+networks:
+  default:
+  service:
+  creds-api_service:
+    external: true
