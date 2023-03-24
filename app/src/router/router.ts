@@ -20,11 +20,13 @@ router.delete(
   WorkerController.delete.bind(WorkerController)
 );
 
+router.get("/workers/", WorkerController.getAll.bind(WorkerController));
+
 router.all("*", (req: Request, res: Response) => {
   req.logger.info("Route not found. Returning...");
-  res.status(304).json({
-    status: 'Error',
-    message: 'Not found.'
+  res.status(404).json({
+    status: "Error",
+    message: "Not found.",
   });
 });
 

@@ -48,13 +48,39 @@ class WorkerModel {
   }
 
   /**
+   * A method to find all workers in the database.
+   */
+  public async findAll(): Promise<Model[]> {
+    this.logger.info("Trying to find all workers...");
+    return await this.model.findAll();
+  }
+
+  /**
+   * A method to update a worker in the database.
+   * @param workerId - The workerId from the worker.
+   * @param entry - The entry to update the worker.
+   */
+  public async update(workerId: string, entry: any): Promise<Model[]> {
+    this.logger.info("Trying to update some worker...");
+    const updateResult = await this.model.update(entry, {
+      returning: true,
+      where: {
+        id: workerId,
+      },
+    });
+    return updateResult[1];
+  }
+
+  /**
    * A method to delete a worker in the database.
    * @param query - The query to delete the worker.
    */
-  public async delete(query: any): Promise<number> {
+  public async delete(workerId: string): Promise<number> {
     this.logger.info("Trying to delete some worker...");
     return await this.model.destroy({
-      where: query,
+      where: {
+        id: workerId,
+      },
     });
   }
 }

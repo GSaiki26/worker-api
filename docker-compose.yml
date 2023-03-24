@@ -18,7 +18,7 @@ services:
 
   workers-db:
     container_name: workers-db
-    image: postgres:14.2-alpine
+    image: postgres:15.2-alpine
     env_file:
       - workers-db.env
     volumes:
