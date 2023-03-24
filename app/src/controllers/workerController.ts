@@ -137,9 +137,32 @@ class WorkerController {
   }
 
   /**
-   * DELETE /worker/
+   * DELETE /worker/:workerId
    */
-  public static async delete(req: Request, res: Response): Promise<any> {}
+  public static async delete(req: Request, res: Response): Promise<any> {
+    // Check if the permission is admin.
+    if (req.permission != "admin") {
+      req.logger.warn("Elevated permissions required. Returning...");
+      return res.sendStatus(403);
+    }
+
+    // Try to delete the worker.
+    try {
+      const deletedRows = await new WorkerModel(req.logger).delete(
+        req.params.workerId
+      );
+      if (!deletedRows) throw "No worker deleted.";
+
+      req.logger.warn("Worker deleted. Returning...");
+      res.sendStatus(204);
+    } catch (err) {
+      req.logger.warn(`Couldn\'t delete the worker.Error: ${err}`);
+      return res.status(400).json({
+        status: "Error",
+        message: "Invalid Request.",
+      });
+    }
+  }
 }
 
 // Code

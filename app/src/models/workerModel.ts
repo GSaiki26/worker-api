@@ -75,10 +75,12 @@ class WorkerModel {
    * A method to delete a worker in the database.
    * @param query - The query to delete the worker.
    */
-  public async delete(query: any): Promise<number> {
+  public async delete(workerId: string): Promise<number> {
     this.logger.info("Trying to delete some worker...");
     return await this.model.destroy({
-      where: query,
+      where: {
+        id: workerId,
+      },
     });
   }
 }
