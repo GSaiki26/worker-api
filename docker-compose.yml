@@ -8,8 +8,8 @@ services:
     env_file:
       - workers-api.env
       - workers-db.env
-    # ports:
-    #   - 3000:80
+    ports:
+      - 3000:80
     networks:
       - default
       - service

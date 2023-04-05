@@ -21,6 +21,10 @@ const WorkerScheme: ModelAttributes = {
     allowNull: false,
     unique: true,
   },
+  card_id: {
+    type: STRING,
+    unique: true,
+  },
 };
 
 // Code

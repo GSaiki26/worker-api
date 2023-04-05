@@ -20,6 +20,11 @@ router.delete(
   WorkerController.delete.bind(WorkerController)
 );
 
+router.get(
+  "/worker/card/:cardId",
+  WorkerController.getCardId.bind(WorkerController)
+);
+
 router.get("/workers/", WorkerController.getAll.bind(WorkerController));
 
 router.all("*", (req: Request, res: Response) => {

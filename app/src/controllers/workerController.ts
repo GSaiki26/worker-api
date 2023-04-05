@@ -15,8 +15,8 @@ class WorkerController {
     }
 
     // Check the request's body.
-    const { firstName, lastName, email } = req.body;
-    if (!firstName || !lastName || !email) {
+    const { firstName, lastName, email, cardId } = req.body;
+    if (!firstName || !lastName || !email || !cardId) {
       req.logger.info("The request's body is invalid. Returning...");
       return res.status(400).json({
         status: "Error",
@@ -30,6 +30,7 @@ class WorkerController {
         first_name: firstName,
         last_name: lastName,
         email: email,
+        card_id: cardId,
       });
       return res.status(201).json({
         status: "Success",
@@ -62,6 +63,31 @@ class WorkerController {
       });
     } catch (err) {
       req.logger.info("Couldn't found any worker. Returning...");
+      return res.status(400).json({
+        status: "Error",
+        message: err,
+      });
+    }
+  }
+
+  /**
+   * GET /worker/card/:cardId
+   */
+  public static async getCardId(req: Request, res: Response): Promise<any> {
+    try {
+      // Search the worker in the database.
+      const worker = await new WorkerModel(req.logger).find({
+        card_id: req.params.cardId,
+      });
+      if (!worker) throw "No worker with the provided card found.";
+
+      req.logger.info("The card's worker was found. Returning...");
+      res.status(200).json({
+        status: "Success",
+        data: worker.toJSON(),
+      });
+    } catch (err) {
+      req.logger.info("Couldn't found any worker with that card. Returning...");
       return res.status(400).json({
         status: "Error",
         message: err,
