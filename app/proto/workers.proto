@@ -1,0 +1,65 @@
+// Basics
+syntax = "proto3";
+package workers;
+
+// Services
+service WorkersService {
+    rpc CreateWorker (CreateWorkerReq) returns (DefaultWorkerRes);
+    rpc DeleteWorkerById (DeleteWorkerByIdReq) returns (DeleteWorkerByIdRes);
+    rpc GetWorkerByCardId (GetWorkerByCardIdReq) returns (DefaultWorkerRes);
+    rpc GetWorkerById (GetWorkerReq) returns (DefaultWorkerRes);
+    rpc UpdateWorkerById (UpdateWorkerByIdReq) returns (DefaultWorkerRes);
+    
+}
+
+// Messages
+message Worker {
+    string id = 1;
+    string firstName = 2;
+    string lastName = 3;
+    string email = 4;
+    string cardId = 5;
+}
+
+message DefaultWorkerRes {
+    string status = 1;
+    optional string message = 2;
+    optional Worker data = 3;
+}
+
+// CreateWorker
+message CreateWorkerReq {
+    string firstName = 1;
+    string lastName = 2;
+    string email = 3;
+    string cardId = 4;
+}
+
+// GetWorkerById
+message GetWorkerByIdReq {
+    string id = 1;
+}
+
+// GetWorkerByCardId
+message GetWorkerByCardIdReq {
+    string cardId = 1;
+}
+
+// UpdateWorkerById
+message UpdateWorkerByIdReq {
+    string id = 1;
+    optional string firstName = 2;
+    optional string lastName = 3;
+    optional string email = 4;
+    optional string cardId = 5;
+}
+
+// DeleteWorkerById
+message DeleteWorkerByIdReq {
+    string id = 1;
+}
+
+message DeleteWorkerByIdRes {
+    string status = 1;
+    optional message = 2;
+}
