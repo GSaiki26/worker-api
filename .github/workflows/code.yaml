@@ -1,4 +1,4 @@
-name: "Check audit"
+name: "Check code"
 
 on:
   pull_request:
@@ -13,11 +13,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+
+      - name: Install the packages
+        run: cd app; yarn;
 
       - name: Run Snyk
         uses: snyk/actions/node@master
+        with:
+          args: ./app
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
 
   quality-prettier:
     strategy:
