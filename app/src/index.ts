@@ -1,29 +1,37 @@
 // Libs
-import express from "express";
-import helmet from "helmet";
+import cluster from "cluster";
+import { cpus } from "os";
 
-import router from "@router";
-import LoggerFactory from "@logger";
-import DatabaseModel from "@models/databaseModel";
+import LoggerFactory from "./logger/loggerFactory";
+import DatabaseModel from "./models/databaseModel";
+import ServerModel from "./models/serverModel";
 
 // Data
-const app = express();
-const PORT = process.env.PORT || 3000;
+const HOST = "0.0.0.0:3000";
+const NUM_CPUS = cpus().length;
 
 // Code
-app.use(express.json());
-app.use(helmet());
-app.use(router);
-
 async function main() {
   // Do the migrations.
   const logger = LoggerFactory.createLogger("SERVER");
-  await DatabaseModel.migrations(logger);
 
   // Start the server.
-  app.listen(PORT, () => {
-    logger.info(`The server is up on port: ${PORT}`);
-  });
+  if (cluster.isPrimary) {
+    await DatabaseModel.migrations(logger);
+    if (process.env.K8S_ENABLED == "false") {
+      logger.info("K8S is not enabled. Forking clusters...");
+      for (let i = 0; i < NUM_CPUS; i++) {
+        cluster.fork();
+      }
+  
+      cluster.on("exit", (worker, code) => {
+        logger.info(`Worker $${worker.process.pid} exited with code #${code}`);
+      });
+    }
+  } else {
+    logger.info(`Started worker #${process.pid}`);
+    ServerModel.startServer(HOST);
+  }
 }
 
 main();

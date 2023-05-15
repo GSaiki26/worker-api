@@ -10,8 +10,11 @@ services:
       - ./db.env
     ports:
       - 3000:3000
+    volumes:
+      - ./certs:/app/certs:ro
     networks:
       - service
+      - internal
     depends_on:
       - workers-db
 
@@ -24,7 +27,8 @@ services:
     volumes:
       - ./data:/var/lib/postgresql/data
     networks:
-      - service
+      - internal
 
 networks:
   service:
+  internal:

@@ -14,14 +14,10 @@ USER node
 COPY --chown=node package.json .
 RUN yarn
 
-# Get the certs
-RUN mkdir certs;
-COPY --chown=node ./certs/ca.pem ./certs
-COPY --chown=node ./certs/server.* ./certs/
-
 # Copy the project
-COPY --chown=node tsconfig.json .
-COPY --chown=node src ./src
+COPY --chown=node ./tsconfig.json .
+COPY --chown=node ./proto ./proto
+COPY --chown=node ./src ./src
 
 # Init the project
 RUN yarn run build

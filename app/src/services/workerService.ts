@@ -1,195 +1,215 @@
 // Libs
-import WorkerModel from "@models/workerModel";
-import { Request, Response } from "express";
+import { ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
+import { Model } from "sequelize";
+
+import LoggerFactory from "../logger/loggerFactory";
+import WorkerModel from "../models/workerModel";
+import SecurityModel from "../models/securityModel";
+
+import * as workerTypes from "../types/workerTypes";
 
 // Class
-class WorkerController {
+class WorkerService {
   /**
-   * POST /worker/
+   * A method to create some worker.
    */
-  public static async post(req: Request, res: Response): Promise<any> {
-    // Check if the level is admin.
-    if (req.permission != "admin") {
-      req.logger.warn("Insuficient permission. Returning...");
-      return res.sendStatus(403);
-    }
+  public static async create(
+    call: ServerUnaryCall<workerTypes.CreateReq, any>,
+    cb: sendUnaryData<workerTypes.DefaultRes>
+  ): Promise<any> {
+    // Define the logger.
+    const logger = LoggerFactory.createLogger(call.getPeer());
+    logger.info(`Request to: '${call.getPath()}'.`);
 
     // Check the request's body.
-    const { firstName, lastName, email, cardId } = req.body;
-    if (!firstName || !lastName || !email || !cardId) {
-      req.logger.info("The request's body is invalid. Returning...");
-      return res.status(400).json({
-        status: "Error",
-        message: "Invalid body.",
+    const { firstName, lastName, email, cardId } = call.request;
+    if (SecurityModel.isValidWorker(call.request)) {
+      logger.info("The request's body is invalid. Returning...");
+      return cb({
+        name: "400",
+        message: "Invalid request.",
       });
     }
 
     // Create the worker.
+    let worker: Model;
     try {
-      const worker = await new WorkerModel(req.logger).create({
+      worker = await new WorkerModel(logger).create({
         first_name: firstName,
         last_name: lastName,
         email: email,
         card_id: cardId,
       });
-      return res.status(201).json({
-        status: "Success",
-        data: worker.toJSON(),
-      });
     } catch (err) {
-      req.logger.warn(`Couldn\'t create the worker. Error: ${err}`);
-      return res.status(400).json({
-        status: "Error",
-        message: "Invalid body.",
+      logger.warn("Couldn't create the worker. " + err);
+      return cb({
+        name: "400",
+        message: "Invalid request.",
       });
     }
+
+    // Return the worker.
+    cb(null, {
+      data: worker.toJSON(),
+    });
   }
 
   /**
-   * GET /worker/:workerId
+   * A method to get some worker using his id.
    */
-  public static async get(req: Request, res: Response): Promise<any> {
-    try {
-      // Search the worker in the database.
-      const worker = await new WorkerModel(req.logger).find({
-        id: req.params.workerId,
-      });
-      if (!worker) throw "No worker found.";
+  public static async getById(
+    call: ServerUnaryCall<workerTypes.GetByIdReq, any>,
+    cb: sendUnaryData<workerTypes.DefaultRes>
+  ): Promise<any> {
+    // Define the logger.
+    const logger = LoggerFactory.createLogger(call.getPeer());
+    logger.info(`Request to: '${call.getPath()}'.`);
 
-      req.logger.info("The worker was found. Returning...");
-      res.status(200).json({
-        status: "Success",
-        data: worker.toJSON(),
+    // Search the worker in the database.
+    let worker: Model | null;
+    try {
+      const workerId = call.request.id;
+      logger.info(`Trying to get the worker #${call.request.id}`);
+
+      worker = await new WorkerModel(logger).find({
+        id: workerId,
       });
+      if (!worker) throw "Invalid request.";
     } catch (err) {
-      req.logger.info("Couldn't found any worker. Returning...");
-      return res.status(400).json({
-        status: "Error",
-        message: err,
+      logger.warn("Couldn't found any worker. " + err);
+      return cb({
+        name: "400",
+        message: "Invalid request.",
       });
     }
+
+    // Return the worker to the client.
+    logger.info(`The worker #${worker.toJSON().id} was found. Returning...`);
+
+    cb(null, {
+      data: worker.toJSON(),
+    });
   }
 
   /**
-   * GET /worker/card/:cardId
+   * A method to get some worker using his cardId.
    */
-  public static async getCardId(req: Request, res: Response): Promise<any> {
+  public static async getByCardId(
+    call: ServerUnaryCall<workerTypes.GetByCardIdReq, any>,
+    cb: sendUnaryData<workerTypes.DefaultRes>
+  ): Promise<any> {
+    // Define the logger.
+    const logger = LoggerFactory.createLogger(call.getPeer());
+    logger.info(`Request to: '${call.getPath()}'`);
+
+    // Search the worker in the database.
+    let worker: Model | null;
     try {
-      // Search the worker in the database.
-      const worker = await new WorkerModel(req.logger).find({
-        card_id: req.params.cardId,
+      const cardId = call.request.cardId;
+      logger.info(`Trying to find the worker with the card id: #${cardId}`);
+
+      worker = await new WorkerModel(logger).find({
+        card_id: cardId,
       });
       if (!worker) throw "No worker with the provided card found.";
-
-      req.logger.info("The card's worker was found. Returning...");
-      res.status(200).json({
-        status: "Success",
-        data: worker.toJSON(),
-      });
     } catch (err) {
-      req.logger.info("Couldn't found any worker with that card. Returning...");
-      return res.status(400).json({
-        status: "Error",
-        message: err,
+      logger.info("Couldn't found any worker with that card. " + err);
+      return cb({
+        name: "400",
+        message: "Invalid request.",
       });
     }
+
+    // Return the worker to the client.
+    logger.info("The card's worker was found. Returning...");
+
+    cb(null, {
+      data: worker.toJSON(),
+    });
   }
 
   /**
-   * GET /worker/
+   * A method to update a worker using his id.
    */
-  public static async getAll(req: Request, res: Response): Promise<any> {
-    // Check if the permission is admin.
-    if (req.permission != "admin") {
-      req.logger.warn("Elevated permissions required. Returning...");
-      return res.sendStatus(403);
-    }
-
-    try {
-      // Search the query in the database.
-      const workers = await new WorkerModel(req.logger).findAll();
-
-      req.logger.info(`Found ${workers.length} workers. Returning...`);
-      res.status(200).json({
-        status: "Success",
-        data: workers,
-      });
-    } catch (err) {
-      req.logger.error(`Couldn\'t search in the database. Error: ${err}`);
-      res.sendStatus(500);
-    }
-  }
-
-  /**
-   * PATCH /worker/:workerId
-   *
-   * Body: firstName, lastName, email
-   */
-  public static async patch(req: Request, res: Response): Promise<any> {
-    // Check if the permission is admin.
-    if (req.permission != "admin") {
-      req.logger.warn("Elevated permissions required. Returning...");
-      return res.sendStatus(403);
-    }
+  public static async updateById(
+    call: ServerUnaryCall<workerTypes.UpdateByIdReq, any>,
+    cb: sendUnaryData<workerTypes.DefaultRes>
+  ): Promise<any> {
+    // Define the logger
+    const logger = LoggerFactory.createLogger(call.getPeer());
+    logger.info(`Request to: ${call.getPath()}`);
 
     // Treat the request's body.
     // Add the keys from the request's body to the params.
     const params: any = {};
-    if (req.body.firstName) params.first_name = req.body.firstName;
-    if (req.body.lastName) params.last_name = req.body.lastName;
-    if (req.body.email) params.email = req.body.email;
+    if (SecurityModel.isValidProperty(call.request.cardId!))
+      params.first_name = call.request.cardId;
+    if (SecurityModel.isValidProperty(call.request.firstName!))
+      params.first_name = call.request.firstName;
+    if (SecurityModel.isValidProperty(call.request.lastName!))
+      params.last_name = call.request.lastName;
+    if (SecurityModel.isValidEmail(call.request.email!))
+      params.email = call.request.email;
 
+    // Update the worker.
+    let updatedWorker: Model | undefined;
     try {
-      // Update the worker.
-      const updatedWorker = await new WorkerModel(req.logger).update(
-        req.params.workerId,
-        params
+      const workerId = call.request.id;
+      logger.info(
+        `Trying to update ${Object.keys(
+          params
+        )} properties to worker #${workerId}`
       );
 
-      if (!updatedWorker.length) throw "Any worker was updated.";
+      updatedWorker = await new WorkerModel(logger).update(workerId, params);
 
-      req.logger.warn(`1 worker were updated. Returning...`);
-      res.status(200).json({
-        status: "Success",
-        data: updatedWorker,
-      });
+      if (!updatedWorker) throw "Any worker was updated.";
     } catch (err) {
-      req.logger.warn(`Couldn\'t update the worker. Error: ${err}`);
-      res.status(400).json({
-        status: "Error",
+      logger.warn("Couldn't update the worker. " + err);
+      return cb({
+        name: "400",
         message: "Invalid request.",
       });
     }
+
+    // Return the updated worker to the client.
+    logger.info(`1 worker were updated. Returning...`);
+    cb(null, {
+      data: updatedWorker.toJSON(),
+    });
   }
 
   /**
-   * DELETE /worker/:workerId
+   * A method to delete some worker using his id.
    */
-  public static async delete(req: Request, res: Response): Promise<any> {
-    // Check if the permission is admin.
-    if (req.permission != "admin") {
-      req.logger.warn("Elevated permissions required. Returning...");
-      return res.sendStatus(403);
-    }
+  public static async deleteById(
+    call: ServerUnaryCall<workerTypes.DeleteByIdReq, any>,
+    cb: sendUnaryData<workerTypes.DeleteByIdRes>
+  ): Promise<any> {
+    // Define the logger.
+    const logger = LoggerFactory.createLogger(call.getPeer());
+    logger.info(`Request to: ${call.getPath()}`);
 
     // Try to delete the worker.
     try {
-      const deletedRows = await new WorkerModel(req.logger).delete(
-        req.params.workerId
-      );
+      const workerId = call.request.id;
+      logger.info(`Trying to delete the worker #${workerId}...`);
+      const deletedRows = await new WorkerModel(logger).delete(workerId);
       if (!deletedRows) throw "No worker deleted.";
-
-      req.logger.warn("Worker deleted. Returning...");
-      res.sendStatus(204);
     } catch (err) {
-      req.logger.warn(`Couldn\'t delete the worker.Error: ${err}`);
-      return res.status(400).json({
-        status: "Error",
-        message: "Invalid Request.",
+      logger.warn("Couldn't delete the worker. " + err);
+      return cb({
+        name: "400",
+        message: "Invalid request.",
       });
     }
+
+    // Return the response to the client.
+    cb(null, {
+      status: "Success",
+    });
   }
 }
 
 // Code
-export default WorkerController;
+export default WorkerService;

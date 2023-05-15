@@ -2,7 +2,7 @@
 import sequelize from "sequelize";
 import { Logger } from "winston";
 
-import WorkerModel from "@models/workerModel";
+import WorkerModel from "../models/workerModel";
 
 // Class
 /**
