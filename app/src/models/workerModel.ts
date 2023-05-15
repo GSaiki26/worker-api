@@ -3,8 +3,10 @@ import { randomUUID } from "crypto";
 import { Model } from "sequelize";
 import { Logger } from "winston";
 
-import DatabaseModel from "@models/databaseModel";
+import DatabaseModel from "../models/databaseModel";
 import WorkerScheme from "./schemas/workerScheme";
+
+import * as WorkerTypes from "../types/workerTypes";
 
 // Class
 class WorkerModel {
@@ -31,7 +33,7 @@ class WorkerModel {
    * A method to create a worker in the database.
    * @param entry - The entry to create the worker.
    */
-  public async create(entry: any): Promise<Model> {
+  public async create(entry: any): Promise<Model<WorkerTypes.Worker>> {
     this.logger.info("Trying to create the worker...");
     return await this.model.create(entry);
   }
@@ -40,7 +42,7 @@ class WorkerModel {
    * A method to find a worker in the database.
    * @param query - The query to find the worker.
    */
-  public async find(query: any): Promise<Model | null> {
+  public async find(query: any): Promise<Model<WorkerTypes.Worker> | null> {
     this.logger.info("Trying to find some worker...");
     return await this.model.findOne({
       where: query,
@@ -48,19 +50,14 @@ class WorkerModel {
   }
 
   /**
-   * A method to find all workers in the database.
-   */
-  public async findAll(): Promise<Model[]> {
-    this.logger.info("Trying to find all workers...");
-    return await this.model.findAll();
-  }
-
-  /**
    * A method to update a worker in the database.
    * @param workerId - The workerId from the worker.
    * @param entry - The entry to update the worker.
    */
-  public async update(workerId: string, entry: any): Promise<Model[]> {
+  public async update(
+    workerId: string,
+    entry: any
+  ): Promise<Model<WorkerTypes.Worker> | undefined> {
     this.logger.info("Trying to update some worker...");
     const updateResult = await this.model.update(entry, {
       returning: true,
@@ -68,7 +65,8 @@ class WorkerModel {
         id: workerId,
       },
     });
-    return updateResult[1];
+    if (updateResult[1].length) return updateResult[1][0];
+    return;
   }
 
   /**

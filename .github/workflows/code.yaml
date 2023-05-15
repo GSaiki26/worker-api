@@ -1,0 +1,40 @@
+name: "Check code"
+
+on:
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  security-snyk:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+
+      - name: Install the packages
+        run: cd app; yarn;
+
+      - name: Run Snyk
+        uses: snyk/actions/node@master
+        with:
+          args: ./app
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+
+  quality-prettier:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+
+      - name: Install and apply the prettier
+        run: npm i -g prettier; npx prettier -w ./app/src
