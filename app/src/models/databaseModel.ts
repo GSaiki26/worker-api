@@ -10,7 +10,7 @@ import WorkerModel from "../models/workerModel";
  */
 class DatabaseModel {
   public static seq = new sequelize.Sequelize({
-    host: "workers-db",
+    host: "worker-db",
     port: 5432,
     dialect: "postgres",
     database: process.env.POSTGRES_USER,
