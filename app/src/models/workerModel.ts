@@ -3,8 +3,10 @@ import { randomUUID } from "crypto";
 import { Model } from "sequelize";
 import { Logger } from "winston";
 
-import DatabaseModel from "@models/databaseModel";
+import DatabaseModel from "../models/databaseModel";
 import WorkerScheme from "./schemas/workerScheme";
+
+import * as types from "../types/types";
 
 // Class
 class WorkerModel {
@@ -31,8 +33,10 @@ class WorkerModel {
    * A method to create a worker in the database.
    * @param entry - The entry to create the worker.
    */
-  public async create(entry: any): Promise<Model> {
-    this.logger.info("Trying to create the worker...");
+  public async create(entry: any): Promise<Model<types.DbWorker>> {
+    this.logger.info(
+      `Trying to create the worker ${entry.first_name} ${entry.last_name}...`
+    );
     return await this.model.create(entry);
   }
 
@@ -40,19 +44,28 @@ class WorkerModel {
    * A method to find a worker in the database.
    * @param query - The query to find the worker.
    */
-  public async find(query: any): Promise<Model | null> {
-    this.logger.info("Trying to find some worker...");
+  public async find(workerId: string): Promise<Model<types.DbWorker> | null> {
+    this.logger.info(`Trying to get the worker #${workerId}`);
     return await this.model.findOne({
-      where: query,
+      where: {
+        id: workerId,
+      },
     });
   }
 
   /**
-   * A method to find all workers in the database.
+   * A method to find a worker in the database using his cardId.
+   * @param query - The query to find the worker.
    */
-  public async findAll(): Promise<Model[]> {
-    this.logger.info("Trying to find all workers...");
-    return await this.model.findAll();
+  public async findByCardId(
+    cardId: string
+  ): Promise<Model<types.DbWorker> | null> {
+    this.logger.info(`Trying to get the worker with the card id #${cardId}`);
+    return await this.model.findOne({
+      where: {
+        card_id: cardId,
+      },
+    });
   }
 
   /**
@@ -60,15 +73,22 @@ class WorkerModel {
    * @param workerId - The workerId from the worker.
    * @param entry - The entry to update the worker.
    */
-  public async update(workerId: string, entry: any): Promise<Model[]> {
-    this.logger.info("Trying to update some worker...");
+  public async update(
+    workerId: string,
+    entry: any
+  ): Promise<Model<types.DbWorker> | undefined> {
+    const propertiesCount = Object.keys(entry);
+    this.logger.info(
+      `Trying to update ${propertiesCount} properties to worker #${workerId}`
+    );
     const updateResult = await this.model.update(entry, {
       returning: true,
       where: {
         id: workerId,
       },
     });
-    return updateResult[1];
+    if (updateResult[1].length) return updateResult[1][0];
+    return;
   }
 
   /**
@@ -76,7 +96,7 @@ class WorkerModel {
    * @param query - The query to delete the worker.
    */
   public async delete(workerId: string): Promise<number> {
-    this.logger.info("Trying to delete some worker...");
+    this.logger.info(`Trying to delete the worker #${workerId}...`);
     return await this.model.destroy({
       where: {
         id: workerId,
