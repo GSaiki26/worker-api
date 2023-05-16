@@ -23,7 +23,7 @@ async function main() {
       for (let i = 0; i < NUM_CPUS; i++) {
         cluster.fork();
       }
-  
+
       cluster.on("exit", (worker, code) => {
         logger.info(`Worker $${worker.process.pid} exited with code #${code}`);
       });

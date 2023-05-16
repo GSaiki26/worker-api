@@ -34,7 +34,9 @@ class WorkerModel {
    * @param entry - The entry to create the worker.
    */
   public async create(entry: any): Promise<Model<types.DbWorker>> {
-    this.logger.info(`Trying to create the worker ${entry.first_name} ${entry.last_name}...`);
+    this.logger.info(
+      `Trying to create the worker ${entry.first_name} ${entry.last_name}...`
+    );
     return await this.model.create(entry);
   }
 
@@ -46,7 +48,7 @@ class WorkerModel {
     this.logger.info(`Trying to get the worker #${workerId}`);
     return await this.model.findOne({
       where: {
-        id: workerId
+        id: workerId,
       },
     });
   }
@@ -55,14 +57,16 @@ class WorkerModel {
    * A method to find a worker in the database using his cardId.
    * @param query - The query to find the worker.
    */
-    public async findByCardId(cardId: string): Promise<Model<types.DbWorker> | null> {
-      this.logger.info(`Trying to get the worker with the card id #${cardId}`);
-      return await this.model.findOne({
-        where: {
-          card_id: cardId
-        },
-      });
-    }
+  public async findByCardId(
+    cardId: string
+  ): Promise<Model<types.DbWorker> | null> {
+    this.logger.info(`Trying to get the worker with the card id #${cardId}`);
+    return await this.model.findOne({
+      where: {
+        card_id: cardId,
+      },
+    });
+  }
 
   /**
    * A method to update a worker in the database.
@@ -74,7 +78,9 @@ class WorkerModel {
     entry: any
   ): Promise<Model<types.DbWorker> | undefined> {
     const propertiesCount = Object.keys(entry);
-    this.logger.info(`Trying to update ${propertiesCount} properties to worker #${workerId}`);
+    this.logger.info(
+      `Trying to update ${propertiesCount} properties to worker #${workerId}`
+    );
     const updateResult = await this.model.update(entry, {
       returning: true,
       where: {

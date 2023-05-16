@@ -23,14 +23,16 @@ class SecurityModel {
     return true;
   }
 
-  public static workerToPublicWorker(worker: types.DbWorker): types.ProtoWorker {
+  public static workerToPublicWorker(
+    worker: types.DbWorker
+  ): types.ProtoWorker {
     return {
       id: worker.id,
       cardId: worker.card_id,
       email: worker.email,
       firstName: worker.first_name,
       lastName: worker.last_name,
-    }
+    };
   }
 }
 
