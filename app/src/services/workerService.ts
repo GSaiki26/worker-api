@@ -6,7 +6,7 @@ import LoggerFactory from "../logger/loggerFactory";
 import WorkerModel from "../models/workerModel";
 import SecurityModel from "../models/securityModel";
 
-import * as workerTypes from "../types/workerTypes";
+import * as types from "../types/types";
 
 // Class
 class WorkerService {
@@ -14,8 +14,8 @@ class WorkerService {
    * A method to create some worker.
    */
   public static async create(
-    call: ServerUnaryCall<workerTypes.CreateReq, any>,
-    cb: sendUnaryData<workerTypes.DefaultRes>
+    call: ServerUnaryCall<types.ProtoCreateReq, any>,
+    cb: sendUnaryData<types.ProtoDefaultRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -23,7 +23,7 @@ class WorkerService {
 
     // Check the request's body.
     const { firstName, lastName, email, cardId } = call.request;
-    if (SecurityModel.isValidWorker(call.request)) {
+    if (!SecurityModel.isValidWorker(call.request)) {
       logger.info("The request's body is invalid. Returning...");
       return cb({
         name: "400",
@@ -32,7 +32,7 @@ class WorkerService {
     }
 
     // Create the worker.
-    let worker: Model;
+    let worker: Model<types.DbWorker>;
     try {
       worker = await new WorkerModel(logger).create({
         first_name: firstName,
@@ -49,8 +49,9 @@ class WorkerService {
     }
 
     // Return the worker.
+    logger.info(`Returning the worker #${worker.toJSON().id} to the client...`);
     cb(null, {
-      data: worker.toJSON(),
+      data: SecurityModel.workerToPublicWorker(worker.toJSON()),
     });
   }
 
@@ -58,22 +59,19 @@ class WorkerService {
    * A method to get some worker using his id.
    */
   public static async getById(
-    call: ServerUnaryCall<workerTypes.GetByIdReq, any>,
-    cb: sendUnaryData<workerTypes.DefaultRes>
+    call: ServerUnaryCall<types.ProtoGetByIdReq, any>,
+    cb: sendUnaryData<types.ProtoDefaultRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
     logger.info(`Request to: '${call.getPath()}'.`);
 
     // Search the worker in the database.
-    let worker: Model | null;
+    let worker: Model<types.DbWorker> | null;
     try {
       const workerId = call.request.id;
-      logger.info(`Trying to get the worker #${call.request.id}`);
 
-      worker = await new WorkerModel(logger).find({
-        id: workerId,
-      });
+      worker = await new WorkerModel(logger).find(workerId);
       if (!worker) throw "Invalid request.";
     } catch (err) {
       logger.warn("Couldn't found any worker. " + err);
@@ -87,7 +85,7 @@ class WorkerService {
     logger.info(`The worker #${worker.toJSON().id} was found. Returning...`);
 
     cb(null, {
-      data: worker.toJSON(),
+      data: SecurityModel.workerToPublicWorker(worker.toJSON()),
     });
   }
 
@@ -95,8 +93,8 @@ class WorkerService {
    * A method to get some worker using his cardId.
    */
   public static async getByCardId(
-    call: ServerUnaryCall<workerTypes.GetByCardIdReq, any>,
-    cb: sendUnaryData<workerTypes.DefaultRes>
+    call: ServerUnaryCall<types.ProtoGetByCardIdReq, any>,
+    cb: sendUnaryData<types.ProtoDefaultRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -106,11 +104,8 @@ class WorkerService {
     let worker: Model | null;
     try {
       const cardId = call.request.cardId;
-      logger.info(`Trying to find the worker with the card id: #${cardId}`);
 
-      worker = await new WorkerModel(logger).find({
-        card_id: cardId,
-      });
+      worker = await new WorkerModel(logger).findByCardId(cardId);
       if (!worker) throw "No worker with the provided card found.";
     } catch (err) {
       logger.info("Couldn't found any worker with that card. " + err);
@@ -124,7 +119,7 @@ class WorkerService {
     logger.info("The card's worker was found. Returning...");
 
     cb(null, {
-      data: worker.toJSON(),
+      data: SecurityModel.workerToPublicWorker(worker.toJSON()),
     });
   }
 
@@ -132,8 +127,8 @@ class WorkerService {
    * A method to update a worker using his id.
    */
   public static async updateById(
-    call: ServerUnaryCall<workerTypes.UpdateByIdReq, any>,
-    cb: sendUnaryData<workerTypes.DefaultRes>
+    call: ServerUnaryCall<types.ProtoUpdateByIdReq, any>,
+    cb: sendUnaryData<types.ProtoDefaultRes>
   ): Promise<any> {
     // Define the logger
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -155,12 +150,6 @@ class WorkerService {
     let updatedWorker: Model | undefined;
     try {
       const workerId = call.request.id;
-      logger.info(
-        `Trying to update ${Object.keys(
-          params
-        )} properties to worker #${workerId}`
-      );
-
       updatedWorker = await new WorkerModel(logger).update(workerId, params);
 
       if (!updatedWorker) throw "Any worker was updated.";
@@ -175,7 +164,7 @@ class WorkerService {
     // Return the updated worker to the client.
     logger.info(`1 worker were updated. Returning...`);
     cb(null, {
-      data: updatedWorker.toJSON(),
+      data: SecurityModel.workerToPublicWorker(updatedWorker.toJSON()),
     });
   }
 
@@ -183,8 +172,8 @@ class WorkerService {
    * A method to delete some worker using his id.
    */
   public static async deleteById(
-    call: ServerUnaryCall<workerTypes.DeleteByIdReq, any>,
-    cb: sendUnaryData<workerTypes.DeleteByIdRes>
+    call: ServerUnaryCall<types.ProtoDeleteByIdReq, any>,
+    cb: sendUnaryData<types.ProtoDeleteByIdRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -193,8 +182,8 @@ class WorkerService {
     // Try to delete the worker.
     try {
       const workerId = call.request.id;
-      logger.info(`Trying to delete the worker #${workerId}...`);
       const deletedRows = await new WorkerModel(logger).delete(workerId);
+
       if (!deletedRows) throw "No worker deleted.";
     } catch (err) {
       logger.warn("Couldn't delete the worker. " + err);
