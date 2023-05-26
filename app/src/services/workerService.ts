@@ -3,9 +3,12 @@ import { ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
 import { Model } from "sequelize";
 
 import LoggerFactory from "../logger/loggerFactory";
-import WorkerModel from "../models/workerModel";
-import SecurityModel from "../models/securityModel";
 
+import ProtoMessages from "../proto/worker_pb";
+import SecurityModel from "../models/securityModel";
+import WorkerModel from "../models/workerModel";
+
+// Types
 import * as types from "../types/types";
 
 // Class
@@ -14,15 +17,14 @@ class WorkerService {
    * A method to create some worker.
    */
   public static async create(
-    call: ServerUnaryCall<types.ProtoCreateReq, any>,
-    cb: sendUnaryData<types.ProtoDefaultRes>
+    call: ServerUnaryCall<ProtoMessages.CreateReq, any>,
+    cb: sendUnaryData<ProtoMessages.DefaultRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
     logger.info(`Request to: '${call.getPath()}'.`);
 
     // Check the request's body.
-    const { firstName, lastName, email, cardId } = call.request;
     if (!SecurityModel.isValidWorker(call.request)) {
       logger.info("The request's body is invalid. Returning...");
       return cb({
@@ -34,12 +36,7 @@ class WorkerService {
     // Create the worker.
     let worker: Model<types.DbWorker>;
     try {
-      worker = await new WorkerModel(logger).create({
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
-        card_id: cardId,
-      });
+      worker = await new WorkerModel(logger).create(call.request);
     } catch (err) {
       logger.warn("Couldn't create the worker. " + err);
       return cb({
@@ -50,17 +47,19 @@ class WorkerService {
 
     // Return the worker.
     logger.info(`Returning the worker #${worker.toJSON().id} to the client...`);
-    cb(null, {
-      data: SecurityModel.workerToPublicWorker(worker.toJSON()),
-    });
+    const response = new ProtoMessages.DefaultRes().setData(
+      SecurityModel.workerToPublicWorker(worker.toJSON())
+    );
+
+    cb(null, response);
   }
 
   /**
    * A method to get some worker using his id.
    */
   public static async getById(
-    call: ServerUnaryCall<types.ProtoGetByIdReq, any>,
-    cb: sendUnaryData<types.ProtoDefaultRes>
+    call: ServerUnaryCall<ProtoMessages.GetByIdReq, any>,
+    cb: sendUnaryData<ProtoMessages.DefaultRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -69,7 +68,7 @@ class WorkerService {
     // Search the worker in the database.
     let worker: Model<types.DbWorker> | null;
     try {
-      const workerId = call.request.id;
+      const workerId = call.request.getId();
 
       worker = await new WorkerModel(logger).find(workerId);
       if (!worker) throw "Invalid request.";
@@ -83,18 +82,19 @@ class WorkerService {
 
     // Return the worker to the client.
     logger.info(`The worker #${worker.toJSON().id} was found. Returning...`);
+    const response = new ProtoMessages.DefaultRes().setData(
+      SecurityModel.workerToPublicWorker(worker.toJSON())
+    );
 
-    cb(null, {
-      data: SecurityModel.workerToPublicWorker(worker.toJSON()),
-    });
+    cb(null, response);
   }
 
   /**
    * A method to get some worker using his cardId.
    */
   public static async getByCardId(
-    call: ServerUnaryCall<types.ProtoGetByCardIdReq, any>,
-    cb: sendUnaryData<types.ProtoDefaultRes>
+    call: ServerUnaryCall<ProtoMessages.GetByCardIdReq, any>,
+    cb: sendUnaryData<ProtoMessages.DefaultRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -103,7 +103,7 @@ class WorkerService {
     // Search the worker in the database.
     let worker: Model | null;
     try {
-      const cardId = call.request.cardId;
+      const cardId = call.request.getCardid();
 
       worker = await new WorkerModel(logger).findByCardId(cardId);
       if (!worker) throw "No worker with the provided card found.";
@@ -117,18 +117,19 @@ class WorkerService {
 
     // Return the worker to the client.
     logger.info("The card's worker was found. Returning...");
+    const response = new ProtoMessages.DefaultRes().setData(
+      SecurityModel.workerToPublicWorker(worker.toJSON())
+    );
 
-    cb(null, {
-      data: SecurityModel.workerToPublicWorker(worker.toJSON()),
-    });
+    cb(null, response);
   }
 
   /**
    * A method to update a worker using his id.
    */
   public static async updateById(
-    call: ServerUnaryCall<types.ProtoUpdateByIdReq, any>,
-    cb: sendUnaryData<types.ProtoDefaultRes>
+    call: ServerUnaryCall<ProtoMessages.UpdateByIdReq, any>,
+    cb: sendUnaryData<ProtoMessages.DefaultRes>
   ): Promise<any> {
     // Define the logger
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -137,19 +138,19 @@ class WorkerService {
     // Treat the request's body.
     // Add the keys from the request's body to the params.
     const params: any = {};
-    if (SecurityModel.isValidProperty(call.request.cardId!))
-      params.first_name = call.request.cardId;
-    if (SecurityModel.isValidProperty(call.request.firstName!))
-      params.first_name = call.request.firstName;
-    if (SecurityModel.isValidProperty(call.request.lastName!))
-      params.last_name = call.request.lastName;
-    if (SecurityModel.isValidEmail(call.request.email!))
-      params.email = call.request.email;
+    if (SecurityModel.isValidProperty(call.request.getCardid()))
+      params.first_name = call.request.getCardid();
+    if (SecurityModel.isValidProperty(call.request.getFirstname()))
+      params.first_name = call.request.getFirstname();
+    if (SecurityModel.isValidProperty(call.request.getLastname()))
+      params.last_name = call.request.getLastname();
+    if (SecurityModel.isValidEmail(call.request.getEmail()))
+      params.email = call.request.getEmail();
 
     // Update the worker.
     let updatedWorker: Model | undefined;
     try {
-      const workerId = call.request.id;
+      const workerId = call.request.getId();
       updatedWorker = await new WorkerModel(logger).update(workerId, params);
 
       if (!updatedWorker) throw "Any worker was updated.";
@@ -163,17 +164,18 @@ class WorkerService {
 
     // Return the updated worker to the client.
     logger.info(`1 worker were updated. Returning...`);
-    cb(null, {
-      data: SecurityModel.workerToPublicWorker(updatedWorker.toJSON()),
-    });
+    const response = new ProtoMessages.DefaultRes().setData(
+      SecurityModel.workerToPublicWorker(updatedWorker.toJSON())
+    );
+    cb(null, response);
   }
 
   /**
    * A method to delete some worker using his id.
    */
   public static async deleteById(
-    call: ServerUnaryCall<types.ProtoDeleteByIdReq, any>,
-    cb: sendUnaryData<types.ProtoDeleteByIdRes>
+    call: ServerUnaryCall<ProtoMessages.DeleteByIdReq, any>,
+    cb: sendUnaryData<ProtoMessages.DeleteByIdRes>
   ): Promise<any> {
     // Define the logger.
     const logger = LoggerFactory.createLogger(call.getPeer());
@@ -181,7 +183,7 @@ class WorkerService {
 
     // Try to delete the worker.
     try {
-      const workerId = call.request.id;
+      const workerId = call.request.getId();
       const deletedRows = await new WorkerModel(logger).delete(workerId);
 
       if (!deletedRows) throw "No worker deleted.";
@@ -194,9 +196,7 @@ class WorkerService {
     }
 
     // Return the response to the client.
-    cb(null, {
-      status: "Success",
-    });
+    cb(null, new ProtoMessages.DeleteByIdRes().setStatus("Success"));
   }
 }
 

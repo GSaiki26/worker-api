@@ -4,6 +4,7 @@ import { Model } from "sequelize";
 import { Logger } from "winston";
 
 import DatabaseModel from "../models/databaseModel";
+import ProtoMessages from "../proto/worker_pb";
 import WorkerScheme from "./schemas/workerScheme";
 
 import * as types from "../types/types";
@@ -11,13 +12,13 @@ import * as types from "../types/types";
 // Class
 class WorkerModel {
   private logger: Logger;
-  private model = DatabaseModel.seq.define("workers", WorkerScheme);
+  private model = DatabaseModel.seq.define<Model<types.DbWorker>>(
+    "workers",
+    WorkerScheme
+  );
 
   constructor(logger: Logger) {
     this.logger = logger;
-    this.model.beforeCreate("workers", (worker) => {
-      (worker as any).id = randomUUID();
-    });
   }
 
   /**
@@ -33,11 +34,19 @@ class WorkerModel {
    * A method to create a worker in the database.
    * @param entry - The entry to create the worker.
    */
-  public async create(entry: any): Promise<Model<types.DbWorker>> {
+  public async create(
+    entry: ProtoMessages.CreateReq
+  ): Promise<Model<types.DbWorker>> {
     this.logger.info(
-      `Trying to create the worker ${entry.first_name} ${entry.last_name}...`
+      `Trying to create the worker ${entry.getFirstname()} ${entry.getLastname()}...`
     );
-    return await this.model.create(entry);
+    return await this.model.create({
+      id: randomUUID(),
+      card_id: entry.getCardid(),
+      email: entry.getEmail(),
+      first_name: entry.getFirstname(),
+      last_name: entry.getLastname(),
+    } as any);
   }
 
   /**
@@ -75,13 +84,21 @@ class WorkerModel {
    */
   public async update(
     workerId: string,
-    entry: any
+    entry: ProtoMessages.UpdateByIdReq
   ): Promise<Model<types.DbWorker> | undefined> {
     const propertiesCount = Object.keys(entry);
     this.logger.info(
       `Trying to update ${propertiesCount} properties to worker #${workerId}`
     );
-    const updateResult = await this.model.update(entry, {
+
+    // Treat the entry to the DbWorker format.
+    const updatedEntry: types.DbWorker = {} as any;
+    if (entry.getCardid()) updatedEntry.card_id = entry.getCardid();
+    if (entry.getEmail()) updatedEntry.email = entry.getEmail();
+    if (entry.getFirstname()) updatedEntry.first_name = entry.getFirstname();
+    if (entry.getLastname()) updatedEntry.last_name = entry.getLastname();
+
+    const updateResult = await this.model.update(updatedEntry, {
       returning: true,
       where: {
         id: workerId,
