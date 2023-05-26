@@ -1,4 +1,6 @@
 // Libs
+import ProtoMessages from "../proto/worker_pb";
+
 import * as types from "../types/types";
 
 // Class
@@ -14,25 +16,24 @@ class SecurityModel {
     return property.length > 2;
   }
 
-  public static isValidWorker(worker: types.ProtoCreateReq): boolean {
-    if (!SecurityModel.isValidProperty(worker.cardId)) return false;
-    if (!SecurityModel.isValidProperty(worker.firstName)) return false;
-    if (!SecurityModel.isValidProperty(worker.lastName)) return false;
-    if (!SecurityModel.isValidEmail(worker.email)) return false;
+  public static isValidWorker(worker: ProtoMessages.CreateReq): boolean {
+    if (!SecurityModel.isValidProperty(worker.getCardid())) return false;
+    if (!SecurityModel.isValidProperty(worker.getFirstname())) return false;
+    if (!SecurityModel.isValidProperty(worker.getLastname())) return false;
+    if (!SecurityModel.isValidEmail(worker.getEmail())) return false;
 
     return true;
   }
 
   public static workerToPublicWorker(
     worker: types.DbWorker
-  ): types.ProtoWorker {
-    return {
-      id: worker.id,
-      cardId: worker.card_id,
-      email: worker.email,
-      firstName: worker.first_name,
-      lastName: worker.last_name,
-    };
+  ): ProtoMessages.Worker {
+    return new ProtoMessages.Worker()
+      .setId(worker.id)
+      .setCardid(worker.card_id)
+      .setEmail(worker.email)
+      .setFirstname(worker.first_name)
+      .setLastname(worker.last_name);
   }
 }
 

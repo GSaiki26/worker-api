@@ -2,10 +2,10 @@
 import { readFileSync } from "fs";
 
 import * as grpc from "@grpc/grpc-js";
-import { loadSync } from "@grpc/proto-loader";
 import { Logger } from "winston";
 
 import LoggerFactory from "../logger/loggerFactory";
+import ProtoServices from "../proto/worker_grpc_pb";
 import WorkerService from "../services/workerService";
 
 // Class
@@ -39,13 +39,12 @@ class ServerModel {
    * A method to define the services used by the server.
    */
   private static defineServices(): void {
-    const workerDef = ServerModel.getWorkerDefinition();
-    ServerModel.server.addService(workerDef.WorkerService.service, {
-      Create: WorkerService.create,
-      DeleteById: WorkerService.deleteById,
-      GetByCardId: WorkerService.getByCardId,
-      GetById: WorkerService.getById,
-      UpdateById: WorkerService.updateById,
+    ServerModel.server.addService(ProtoServices.WorkerServiceService as any, {
+      create: WorkerService.create,
+      deleteById: WorkerService.deleteById,
+      getByCardId: WorkerService.getByCardId,
+      getById: WorkerService.getById,
+      updateById: WorkerService.updateById,
     });
   }
 
@@ -63,15 +62,6 @@ class ServerModel {
       ],
       true
     );
-  }
-
-  /**
-   * A method to get the worker proto definifion.
-   */
-  private static getWorkerDefinition(): any {
-    // Load the proto.
-    const workerProto = loadSync("./proto/worker.proto");
-    return grpc.loadPackageDefinition(workerProto).worker;
   }
 }
 

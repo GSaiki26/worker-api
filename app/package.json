@@ -4,12 +4,15 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc >> /dev/null; mkdir ./dist/proto; yarn run proto",
+    "dev:proto": "npx grpc_tools_node_protoc --plugin=protoc-geb-ts=./node_modules/.bin/protoc-gen-ts --ts_out=./src/proto --js_out=import_style=commonjs:./src/proto --grpc_out=grpc_js:./src/proto -I ./src/proto ./src/proto/*.proto",
     "linter": "prettier --check ./src",
+    "proto": "npx grpc_tools_node_protoc --plugin=protoc-geb-ts=./node_modules/.bin/protoc-gen-ts --ts_out=./dist/proto --js_out=import_style=commonjs:./dist/proto --grpc_out=grpc_js:./dist/proto -I ./src/proto ./src/proto/*.proto",
     "start:prod": "tsc; node ."
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.8.14",
+    "grpc_tools_node_protoc_ts": "^5.3.3",
     "pg": "^8.10.0",
     "sequelize": "^6.29.3",
     "winston": "^3.8.2"
