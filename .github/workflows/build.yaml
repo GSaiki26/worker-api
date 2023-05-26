@@ -1,0 +1,24 @@
+name: "Build"
+
+on:
+  pull_request:
+    branches: [master, develop]
+  push:
+    branches: [ master ]
+
+jobs:
+  build-project:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        version: [ 19 ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node_version: ${{ matrix.version }}
+
+      - name: Build the project
+        run: docker build -t project ./app;
