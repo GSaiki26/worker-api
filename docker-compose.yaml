@@ -1,8 +1,8 @@
 version: '3.9'
 
 services:
-  workers-api:
-    container_name: workers-api
+  worker-api:
+    container_name: worker-api
     build: ./app
     restart: unless-stopped
     env_file:
@@ -16,10 +16,10 @@ services:
       - service
       - internal
     depends_on:
-      - workers-db
+      - worker-db
 
-  workers-db:
-    container_name: workers-db
+  worker-db:
+    container_name: worker-db
     image: postgres:15.2-alpine
     restart: unless-stopped
     env_file:

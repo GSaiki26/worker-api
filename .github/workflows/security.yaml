@@ -1,11 +1,13 @@
-name: "Check code"
+name: "Security"
 
 on:
   pull_request:
     branches: [master, develop]
+  push:
+    branches: [ master ]
 
 jobs:
-  security-snyk:
+  code-snyk:
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -14,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
+        with:
+          node_version: ${{ matrix.version }}
 
       - name: Install the packages
         run: cd app; yarn;
@@ -24,20 +28,3 @@ jobs:
           args: ./app
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-
-  quality-prettier:
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-
-      - name: Check prettier
-        uses: creyD/prettier_action@v4.3
-        with:
-          dry: True
-          prettier_options: --check ./app
